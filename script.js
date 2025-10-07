@@ -53,12 +53,6 @@ analyzeButton.addEventListener('click', async () => {
             body: JSON.stringify({ text: allText, checklist: checklistData }), 
         });
 
-        // 추출된 전체 텍스트를 백엔드(Netlify 함수)로 전송
-        const response = await fetch('/.netlify/functions/analyze', {
-            method: 'POST',
-            body: JSON.stringify({ text: allText }), // 이미지가 아닌 텍스트를 보냄
-        });
-
         if (!response.ok) {
             throw new Error('서버에서 오류가 발생했습니다.');
         }
