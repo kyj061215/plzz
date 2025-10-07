@@ -34,7 +34,7 @@ exports.handler = async (event) => {
                     const courseName = typeof course === 'object' ? course.name : course;
                     allRequiredCourseNames.add(courseName);
                     const matches = stringSimilarity.findBestMatch(courseName, ocrWords);
-                    if (matches.bestMatch.rating > 0.4) {
+                    if (matches.bestMatch.rating > 0.5) {
                         completed.push(courseName);
                     } else {
                         remaining.push(courseName);
@@ -49,7 +49,7 @@ exports.handler = async (event) => {
                     const courseName = typeof course === 'object' ? course.name : course;
                     allRequiredCourseNames.add(courseName);
                     const matches = stringSimilarity.findBestMatch(courseName, ocrWords);
-                    if (matches.bestMatch.rating > 0.4) {
+                    if (matches.bestMatch.rating > 0.5) {
                         completed.push(courseName);
                     }
                 });
@@ -57,25 +57,37 @@ exports.handler = async (event) => {
                 break;
 
             case "필수 교양":
-                displayType = 'list_remaining_custom';
+                // 이수한 과목과 미이수 과목을 모두 표시하도록 변경
+                displayType = 'list_all'; 
                 const foreignLanguages = ["한국어", "중국어", "한문", "프랑스어", "독일어", "러시아어", "스페인어", "포르투갈어", "몽골어", "스와힐리어", "이태리어", "히브리어", "라틴어", "그리스어", "말레이-인도네시아어", "산스크리트어", "베트남어", "아랍어", "힌디어", "일본어"];
                 const nonLanguageCourses = categoryData.courses.filter(c => {
                     const courseName = typeof c === 'object' ? c.name : c;
                     return !foreignLanguages.includes(courseName);
                 });
                 
-                const isForeignLanguageCompleted = foreignLanguages.some(lang => stringSimilarity.findBestMatch(lang, ocrWords).bestMatch.rating > 0.6);
-                if (!isForeignLanguageCompleted) {
+                // 외국어 이수 여부 확인
+                let foreignLanguageCompleted = false;
+                for (const lang of foreignLanguages) {
+                    if (stringSimilarity.findBestMatch(lang, ocrWords).bestMatch.rating > 0.6) {
+                        completed.push(lang); // 이수한 외국어 추가
+                        foreignLanguageCompleted = true;
+                        break;
+                    }
+                }
+                if (!foreignLanguageCompleted) {
                     remaining.push("외국어 (택1)");
                 }
                 foreignLanguages.forEach(c => allRequiredCourseNames.add(c));
 
+                // 나머지 필수 교양 이수/미이수 확인
                 nonLanguageCourses.forEach(course => {
                     const courseName = typeof course === 'object' ? course.name : course;
                     allRequiredCourseNames.add(courseName);
                     const matches = stringSimilarity.findBestMatch(courseName, ocrWords);
-                    if (matches.bestMatch.rating < 0.5) {
-                        remaining.push(courseName);
+                    if (matches.bestMatch.rating > 0.5) {
+                        completed.push(courseName); // 이수한 과목 추가
+                    } else {
+                        remaining.push(courseName); // 미이수 과목 추가
                     }
                 });
                 break;
@@ -88,7 +100,7 @@ exports.handler = async (event) => {
                 
                 ocrWords.forEach(word => {
                     const matches = stringSimilarity.findBestMatch(word, categoryData.courses.map(c => c.name));
-                    if (matches.bestMatch.rating > 0.4) {
+                    if (matches.bestMatch.rating > 0.5) {
                         const matchedCourseName = matches.bestMatch.target;
                         const originalCourse = categoryData.courses.find(c => c.name === matchedCourseName);
                         if (originalCourse) {
@@ -111,7 +123,7 @@ exports.handler = async (event) => {
                     const courseName = typeof course === 'object' ? course.name : course;
                     allRequiredCourseNames.add(courseName);
                     const matches = stringSimilarity.findBestMatch(courseName, ocrWords);
-                    if (matches.bestMatch.rating > 0.4) {
+                    if (matches.bestMatch.rating > 0.5) {
                         if (!completed.includes(courseName)) {
                             completed.push(courseName);
                         }
@@ -131,21 +143,14 @@ exports.handler = async (event) => {
         };
     }
 
-    // 4. 기타 수료 요건 및 이수 과목 처리
+    // 4. 기타 수료 요건 처리
     analysisResult["기타 수료 요건"] = {
         description: "시간표 외 수료 요건 달성 현황입니다.",
         data: checklist,
         displayType: 'checklist'
     };
 
-    const courseCandidates = allText.match(/[a-zA-Z0-9가-힣]{2,}/g) || [];
-    const uniqueCourses = [...new Set(courseCandidates)];
-    const otherCompletedCourses = uniqueCourses.filter(course => !allRequiredCourseNames.has(course));
-    analysisResult["기타 이수 과목"] = {
-        description: "수료 기준에 포함되지 않은 이수 과목 목록입니다.",
-        completed: otherCompletedCourses,
-        displayType: 'list_completed_only'
-    };
+    // '기타 이수 과목' 섹션은 여기서 제거되었습니다.
 
     // 5. 최종 분석 결과 전송
     return {
@@ -155,6 +160,6 @@ exports.handler = async (event) => {
 
   } catch (error) {
     console.error('백엔드 오류:', error);
-    return { statusCode: 500, body: JSON.stringify({ message: '분석 중 서버 오류가 발생했습니다.' }) };
+    return { statusCode: 500, body: JSON.stringify({ message: '분석 중 서버에서 오류가 발생했습니다.' }) };
   }
 };
