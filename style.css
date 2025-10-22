@@ -57,15 +57,10 @@ h3 {
    3. 입력 요소 스타일
    ================================= */
 
-/* 전공 선택 드롭다운 박스를 중앙에 배치하고 높이 조정 */
+/* --- 전공 선택 원본 드롭다운 목록 숨기기 --- */
 #elective-courses-select {
-    display: block;             /* select 요소를 블록처럼 다루기 위해 변경 */
-    margin-left: auto;          /* 왼쪽 여백을 자동으로 계산 */
-    margin-right: auto;         /* 오른쪽 여백을 자동으로 계산 */
-    width: 90%;                 /* 박스 너비의 90%를 차지하도록 설정 */
-    min-height: 160px;          /* 높이를 키워 여러 항목을 보기 편하게 함 */
+    display: none !important;
 }
-
 
 /* 비교과 체크리스트 아이템 */
 .check-item {
@@ -111,10 +106,29 @@ button#analyze-button:hover {
 }
 
 /* =================================
-   5. Choices.js 커스텀 스타일 (최소화된 버전)
+   5. Choices.js 커스텀 스타일
    ================================= */
-/* 필요한 경우 여기에 Choices.js 관련 최소 스타일 추가 가능 */
 
+/* '선택 취소' 버튼 텍스트 강제 변경 */
+.choices__list--multiple .choices__item .choices__button {
+    color: transparent; /* 기존 텍스트 숨기기 */
+    position: relative;
+    padding: 2px 6px;
+    font-size: 0.8rem;
+    background-image: none;
+    border-left: 1px solid rgba(0,0,0,0.2);
+    margin-left: 8px;
+    border-radius: 0 3px 3px 0;
+}
+.choices__list--multiple .choices__item .choices__button::after {
+    content: '선택 취소'; /* 새로운 텍스트 추가 */
+    color: #007bff; /* 버튼 텍스트 색상 */
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
 
 /* =================================
    6. 유틸리티 (하이라이트, 숨김 등)
@@ -184,17 +198,4 @@ button#analyze-button:hover {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
-}
-/* 선택 취소 버튼 텍스트 강제 변경 */
-.choices__list--multiple .choices__item .choices__button {
-    color: transparent; /* 기존 텍스트 숨기기 */
-    position: relative;
-}
-.choices__list--multiple .choices__item .choices__button::after {
-    content: '선택 취소'; /* 새로운 텍스트 추가 */
-    color: #007bff; /* 버튼 텍스트 색상 (원하는 색으로 변경 가능) */
-    position: absolute;
-    left: 6px; /* 위치 조정 */
-    top: 2px; /* 위치 조정 */
-    font-size: 0.8rem; /* 글자 크기 */
 }
