@@ -244,3 +244,37 @@ function displayResults(data) {
     }
     resultArea.innerHTML = html;
 }
+
+// '전공 선택' Choices 인스턴스에 'addItem' 이벤트 리스너를 추가합니다.
+electiveSelectElement.addEventListener('addItem', function(event) {
+    // 추가된 항목의 원본 <option> 요소에서 data-duplicate 속성을 확인합니다.
+    const isDuplicateAllowed = event.detail.customProperties.duplicate === 'true';
+
+    // 만약 중복이 허용되는 특별 옵션이라면,
+    if (isDuplicateAllowed) {
+        // 1. 해당 항목을 다시 선택 가능하도록 활성화합니다.
+        electiveChoices.enableChoice(event.detail.value);
+        
+        // 2. 최대 선택 개수 제한(maxItemCount)을 일시적으로 하나 늘려줍니다.
+        // 이렇게 해야 4개를 꽉 채운 상태에서도 특별 항목을 추가할 수 있습니다.
+        electiveChoices.setChoices(
+            electiveChoices.config.choices,
+            'value',
+            'label',
+            true // 이전 선택 유지
+        );
+        electiveChoices.config.maxItemCount++;
+    }
+});
+
+// 항목이 제거될 때의 이벤트도 처리해줍니다.
+electiveSelectElement.addEventListener('removeItem', function(event) {
+    // 제거된 항목이 중복 허용 항목이었는지 확인합니다.
+    const isDuplicateAllowed = event.detail.customProperties.duplicate === 'true';
+
+    // 만약 중복 허용 항목이 제거되었다면,
+    if (isDuplicateAllowed) {
+        // 일시적으로 늘렸던 최대 선택 개수 제한을 다시 원래대로 줄입니다.
+        electiveChoices.config.maxItemCount--;
+    }
+});
