@@ -1,201 +1,99 @@
-const stringSimilarity = require('string-similarity');
-const fs = require('fs');
-const path = require('path');
+// 이 파일의 위치: netlify/functions/analyze.js
 
-exports.handler = async (event) => {
-  try {
-    // 1. 프론트엔드에서 보낸 데이터 가져오기
-    const { text: allText, checklist } = JSON.parse(event.body);
-    if (!allText) {
-      return { statusCode: 400, body: '분석할 텍스트가 없습니다.' };
-    }
+exports.handler = async (event, context) => {
+    try {
+        // 1. 클라이언트로부터 데이터 수신
+        // allText: "의학입문 자유주제탐구 대학글쓰기 1 ..."
+        // checklist: { volunteer: true, cpr: false, ... }
+        const { text: allText, checklist: checklistData } = JSON.parse(event.body);
 
-    // 2. 수료 기준 데이터 파일 읽어오기
-    const requirementsPath = path.join(__dirname, '..', '..', 'requirements.json');
-    const requirementsData = JSON.parse(fs.readFileSync(requirementsPath, 'utf8'));
-    const ocrWords = [...new Set(allText.match(/[a-zA-Z0-9가-힣]{2,}/g) || [])];
-    
-    // 3. 분석 로직 시작
-    const analysisResult = {};
-    const allRequiredCourseNames = new Set();
+        // 2. 분석을 위한 기준 데이터 정의
+        const allRequiredCourses = [
+            '의예과신입생세미나',
+            '의학입문',
+            '자유주제탐구',
+            '의학연구의 이해',
+            '기초의학통계학 및 실험'
+        ];
+        
+        // 3. 최종 분석 결과를 담을 객체
+        const analysisResult = {};
 
-    for (const category in requirementsData) {
-        const categoryData = requirementsData[category];
-        const completed = [];
-        let remaining = [];
-        let completedCount = 0;
-        let requiredCount = 0;
-        let displayType = 'default';
+        // ======================================================
+        // 4. [요청하신 기능] "전공 필수" 분석
+        // ======================================================
+        const completedRequired = [];
+        const remainingRequired = [];
 
-        switch (category) {
-            case "전공 필수":
-                displayType = 'list_all';
-                categoryData.courses.forEach(course => {
-                    const courseName = typeof course === 'object' ? course.name : course;
-                    allRequiredCourseNames.add(courseName);
+        allRequiredCourses.forEach(course => {
+            // allText 문자열에 해당 과목명이 포함되어 있는지 확인
+            if (allText.includes(course)) {
+                completedRequired.push(course);
+            } else {
+                remainingRequired.push(course);
+            }
+        });
 
-                    const matches = stringSimilarity.findBestMatch(courseName, ocrWords);
+        analysisResult["전공 필수"] = {
+            description: "총 5개의 전공 필수 과목을 모두 이수해야 합니다.",
+            displayType: "list_all", // script.js의 displayResults가 이 값을 보고 분기
+            completed: completedRequired,
+            remaining: remainingRequired
+        };
 
-                    let threshold = 0.2;
-                    if (courseName === "의예과신입생세미나") {
-                        threshold = 0.5;
-                    }
+        // ======================================================
+        // 5. [TODO] 나머지 항목 분석 (우선 빈 값으로 채움)
+        // ======================================================
+        // (추후 여기에 '전공 선택', '필수 교양' 등 나머지 분석 로직을 추가해야 합니다.)
+        
+        analysisResult["전공 선택"] = {
+            description: "12학점 이상 이수해야 합니다. (이 기능은 현재 개발 중)",
+            displayType: "count",
+            completed: [], // TODO: allText에서 전공 선택 과목 추출
+            requiredCount: 4 // (예시: 3학점짜리 4개)
+        };
+        
+        analysisResult["필수 교양"] = {
+            description: "필수 교양 과목을 모두 이수해야 합니다. (이 기능은 현재 개발 중)",
+            displayType: "list_remaining_custom",
+            completed: [], // TODO: allText에서 필수 교양 과목 추출
+            remaining: ["(개발 중)"] 
+        };
 
-                    if (matches.bestMatch.rating > threshold) {
-                        completed.push(courseName);
-                    } else {
-                        remaining.push(courseName);
-                    }
-                });
-                break;
+        analysisResult["학문의 세계"] = {
+            description: "5개 영역 중 4개 영역 이상, 12학점 이상 이수 (이 기능은 현재 개발 중)",
+            displayType: "group_count",
+            completed: [], // TODO
+            remaining: [], // TODO
+            completedCount: 0,
+            requiredCount: 4
+        };
+        
+        analysisResult["예체능"] = {
+             description: "3학점 이상 이수 (이 기능은 현재 개발 중)",
+            displayType: "count",
+            completed: [], // TODO
+            requiredCount: 2 // (예시: 1.5학점짜리 2개)
+        };
 
-            case "전공 선택":
-                displayType = 'count';
-                requiredCount = 4;
-                categoryData.courses.forEach(course => {
-                    const courseName = typeof course === 'object' ? course.name : course;
-                    allRequiredCourseNames.add(courseName);
-                    const matches = stringSimilarity.findBestMatch(courseName, ocrWords);
-                    if (matches.bestMatch.rating > 0.5) {
-                        completed.push(courseName);
-                    }
-                });
-                completedCount = completed.length;
-                break;
+        analysisResult["비교과"] = {
+            description: "필수 요건 4개 모두, 선택 요건 4개 중 2개 이상 이수",
+            displayType: "checklist",
+            data: checklistData // 클라이언트에서 받은 값 그대로 전달
+        };
 
-            case "필수 교양":
-                displayType = 'list_all'; 
-                const foreignLanguages = [
-                    "한국어", "중국어", "한문", "프랑스어", "독일어", "러시아어", 
-                    "스페인어", "포르투갈어", "몽골어", "스와힐리어", "이태리어", 
-                    "히브리어", "라틴어", "그리스어", "말레이-인도네시아어", 
-                    "산스크리트어", "베트남어", "아랍어", "힌디어", "일본어",
-                    "독문 강독"
-                ];
-                const specialCourses = [
-                    "대학 글쓰기 1", "대학 글쓰기 2: 과학기술글쓰기", 
-                    "생물학", "생물학실험",
-                    "대학영어 1", "대학영어 2"
-                ];
 
-                // --- 1단계: 이수한 모든 과목('completed' 배열) 확정 ---
-                if (allText.includes("대학") && allText.includes("글쓰")) {
-                    if (allText.includes("과학기술글")) completed.push("대학 글쓰기 2: 과학기술글쓰기");
-                    else completed.push("대학 글쓰기 1");
-                }
-                if (allText.includes("생물학실")) completed.push("생물학실험");
-                else if (allText.includes("생물학")) completed.push("생물학");
+        // 6. 분석 결과 반환
+        return {
+            statusCode: 200,
+            body: JSON.stringify(analysisResult)
+        };
 
-                if (/(대학영어|대학 영어)\s*2/.test(allText)) completed.push("대학영어 2");
-                else if (/(대학영어|대학 영어)\s*1/.test(allText)) completed.push("대학영어 1");
-                
-                for (const lang of foreignLanguages) {
-                    if (stringSimilarity.findBestMatch(lang, ocrWords).bestMatch.rating > 0.6) {
-                        if (!completed.includes(lang)) completed.push(lang);
-                        break;
-                    }
-                }
-                const otherCourses = categoryData.courses.filter(course => {
-                    const courseName = typeof course === 'object' ? course.name : course;
-                    return !foreignLanguages.includes(courseName) && !specialCourses.includes(courseName);
-                });
-                otherCourses.forEach(course => {
-                    const courseName = typeof course === 'object' ? course.name : course;
-                    if (stringSimilarity.findBestMatch(courseName, ocrWords).bestMatch.rating > 0.5) {
-                        if (!completed.includes(courseName)) completed.push(courseName);
-                    }
-                });
-
-                // --- 2단계: 'remaining' 목록 생성 ---
-                const allRequiredInCat = categoryData.courses.map(c => typeof c === 'object' ? c.name : c);
-                const isForeignLangGroupCompleted = completed.some(c => foreignLanguages.includes(c));
-                
-                remaining = allRequiredInCat.filter(courseName => 
-                    !completed.includes(courseName) && !foreignLanguages.includes(courseName)
-                );
-                
-                if (!isForeignLangGroupCompleted) {
-                    remaining.push("외국어 (택1)");
-                }
-                allRequiredInCat.forEach(courseName => allRequiredCourseNames.add(courseName));
-                break;
-            
-            case "학문의 세계":
-                displayType = 'group_count';
-                requiredCount = 3;
-                const completedGroups = new Set();
-                const allGroups = new Set(categoryData.courses.map(course => course.group));
-                
-                ocrWords.forEach(word => {
-                    const matches = stringSimilarity.findBestMatch(word, categoryData.courses.map(c => c.name));
-                    if (matches.bestMatch.rating > 0.5) {
-                        const matchedCourseName = matches.bestMatch.target;
-                        const originalCourse = categoryData.courses.find(c => c.name === matchedCourseName);
-                        if (originalCourse) {
-                            completedGroups.add(originalCourse.group);
-                            if (!completed.some(c => c.name === originalCourse.name)) {
-                                completed.push({ name: originalCourse.name, group: originalCourse.group });
-                            }
-                        }
-                    }
-                });
-                remaining = Array.from(allGroups).filter(group => !completedGroups.has(group));
-                completedCount = completedGroups.size;
-                categoryData.courses.forEach(course => allRequiredCourseNames.add(course.name));
-                break;
-
-            case "예체능":
-                displayType = 'count';
-                requiredCount = 3;
-                categoryData.courses.forEach(course => {
-                    const courseName = typeof course === 'object' ? course.name : course;
-                    allRequiredCourseNames.add(courseName);
-                    const matches = stringSimilarity.findBestMatch(courseName, ocrWords);
-                    if (matches.bestMatch.rating > 0.5) {
-                        if (!completed.includes(courseName)) {
-                            completed.push(courseName);
-                        }
-                    }
-                });
-                completedCount = completed.length;
-                break;
-        }
-
-        analysisResult[category] = {
-            description: categoryData.description,
-            completed,
-            remaining,
-            completedCount,
-            requiredCount,
-            displayType,
+    } catch (error) {
+        // 오류 발생 시
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: error.message })
         };
     }
-
-    // 4. 비전공 및 비교과 처리
-    analysisResult["비교과"] = {
-        description: "비교과 수료 요건 달성 현황입니다.",
-        data: checklist,
-        displayType: 'checklist'
-    };
-
-    const courseCandidates = allText.match(/[a-zA-Z0-9가-힣]{2,}/g) || [];
-    const uniqueCourses = [...new Set(courseCandidates)];
-    const otherCompletedCourses = uniqueCourses.filter(course => !allRequiredCourseNames.has(course));
-    
-    analysisResult["기타 이수 과목"] = {
-        description: "수료 기준에 포함되지 않은 이수 과목 목록입니다.",
-        completed: otherCompletedCourses,
-        displayType: 'list_completed_only'
-    };
-    
-    // 5. 최종 분석 결과 전송
-    return {
-        statusCode: 200,
-        body: JSON.stringify(analysisResult),
-    };
-
-  } catch (error) {
-    console.error('백엔드 오류:', error);
-    return { statusCode: 500, body: JSON.stringify({ message: '분석 중 서버에서 오류가 발생했습니다.' }) };
-  }
 };
