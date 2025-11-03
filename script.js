@@ -190,7 +190,7 @@ function displayResults(data) {
                     
                     // ❗️ [수정] 버튼 텍스트를 'category' 변수와 'details'를 사용하도록 수정
                     html += `<button class="toggle-button" onclick="toggleCourseList('${elementId}')">
-                                 <${category}> 과목 목록(${details.recommended.length}개)
+                                 <${category}> 과목 목록
                              </button>`;
                     
                     const courseListHtml = details.recommended.map(course => `<li>${course}</li>`).join('');
