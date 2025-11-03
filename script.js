@@ -43,19 +43,6 @@ const languageChoices = new Choices(languageSelectElement, {
     maxItemText: (maxItemCount) => `2개까지만 선택할 수 있습니다.`,
 });
 
-// '분석 시작!' 버튼 클릭 이벤트
-analyzeButton.addEventListener('click', async () => {
-    // 월 1회 사용 제한 로직 (기존과 동일)
-    const lastUsed = localStorage.getItem('lastAnalysisTime');
-    const now = new Date();
-    if (lastUsed) {
-        const lastUsedDate = new Date(parseInt(lastUsed));
-        if (now.getFullYear() === lastUsedDate.getFullYear() && now.getMonth() === lastUsedDate.getMonth()) {
-            alert('이 기능은 한 달에 한 번만 사용할 수 있습니다.');
-            return; // 함수 실행 중단
-        }
-    }
-
     // 로딩 UI 표시
     loadingIndicator.classList.remove('hidden');
     resultArea.innerHTML = '';
@@ -64,37 +51,35 @@ analyzeButton.addEventListener('click', async () => {
         // --- 1. 사용자가 선택한 과목 데이터 수집 ---
         const completedCourses = [];
 
-        // 1-1. 체크된 '전공 필수' 과목 목록 가져오기
+        // 1-1. 전공 필수
         document.querySelectorAll('#required-courses-list input[type="checkbox"]:checked').forEach(checkbox => {
             completedCourses.push(checkbox.value);
         });
 
-        // 1-2. Choices.js를 통해 선택된 '전공 선택' 과목 목록 가져오기
+        // 1-2. 전공 선택
         const selectedElectives = choices.getValue(true);
         completedCourses.push(...selectedElectives);
         
-        // --- 1-3. '필수 교양' (체크박스) 과목 읽기 ---
+        // 1-3. 필수 교양 (체크박스)
         document.querySelectorAll('#liberal-arts-courses-list input[type="checkbox"]:checked').forEach(checkbox => {
             completedCourses.push(checkbox.value);
         }); 
-        // ❗️❗️❗️ 버그 수정: 여기서 forEach 루프가 닫혀야 합니다. ❗️❗️❗️
 
-        // --- 1-4. '필수 교양' (외국어) 과목 읽기 (누락된 부분 추가) ---
+        // 1-4. 필수 교양 (외국어)
         const selectedLanguages = languageChoices.getValue(true);
         completedCourses.push(...selectedLanguages);
 
-        // --- 1-5. '학문의 세계' 과목 가져오기 (루프 밖으로 이동) ---
+        // 1-5. 학문의 세계
         const selectedAcademia = academiaChoices.getValue(true);
         completedCourses.push(...selectedAcademia);
 
-        // --- 1-6. '예체능' 과목 가져오기 (루프 밖으로 이동) ---
+        // 1-6. 예체능
         const selectedArts = artsChoices.getValue(true);
         completedCourses.push(...selectedArts);
 
-        // --- '타단과대 전공' 수강 횟수 가져오기 (루프 밖으로 이동) ---
+        // 1-7. 타단과대
         const otherCollegeCheckbox = document.getElementById('other-college-checkbox');
         const otherCollegeCountInput = document.getElementById('other-college-count');
-
         if (otherCollegeCheckbox.checked && otherCollegeCountInput.value) {
             const count = parseInt(otherCollegeCountInput.value, 10) || 0;
             for (let i = 0; i < count; i++) {
@@ -102,11 +87,9 @@ analyzeButton.addEventListener('click', async () => {
             }
         }
         
-        // --- '음미대, 미학과 전공, 교양' 수강 횟수 가져오기 (루프 밖으로 이동) ---
+        // 1-8. 음미대/미학과
         const extraAnSCheckbox = document.getElementById('extra-artsandsports-checkbox');
-        // ❗️❗️❗️ ID 버그 수정: extra-artsandsports-checkbox -> extra-artsandsports-count
-        const extraAnSCountInput = document.getElementById('extra-artsandsports-count'); 
-
+        const extraAnSCountInput = document.getElementById('extra-artsandsports-count'); // (index.html ID도 수정해야 함)
         if (extraAnSCheckbox.checked && extraAnSCountInput.value) {
             const count = parseInt(extraAnSCountInput.value, 10) || 0;
             for (let i = 0; i < count; i++) {
@@ -114,18 +97,14 @@ analyzeButton.addEventListener('click', async () => {
             }
         }
 
-        // ❗️❗️❗️ 버그 수정: 모든 과목 수집이 끝난 후 allText를 생성합니다. ❗️❗️❗️
+        // ❗️❗️❗️ 올바른 위치: 모든 과목 수집 후 allText 생성 ❗️❗️❗️
         const allText = completedCourses.join(' ');
 
         // --- 2. 비교과 체크리스트 데이터 수집 ---
         const checklistData = {
             'volunteer': document.getElementById('volunteer').checked,
             'cpr': document.getElementById('cpr').checked,
-            'leadership': document.getElementById('leadership').checked,
-            'reading': document.getElementById('reading').checked,
-            'human': document.getElementById('human').checked,
-            'study': document.getElementById('study').checked,
-            'cpm': document.getElementById('cpm').checked,
+            // ... (나머지 비교과) ...
             'teps': document.getElementById('teps').checked,
         };
 
@@ -133,25 +112,24 @@ analyzeButton.addEventListener('click', async () => {
         const response = await fetch('/.netlify/functions/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: allText, checklist: checklistData }), // allText가 올바른 위치에서 전송됨
+            body: JSON.stringify({ text: allText, checklist: checklistData }), // ✅ allText가 올바르게 전송됨
         });
 
         if (!response.ok) {
+            // (서버가 진짜 오류나면 여기서 걸림)
             throw new Error('서버에서 오류가 발생했습니다.');
         }
 
         const data = await response.json();
         displayResults(data); // 결과 표시
 
-        // 분석 성공 시 마지막 사용 시간 저장
-        localStorage.setItem('lastAnalysisTime', now.getTime());
+        // ... (localStorage 저장) ...
 
     } catch (error) {
         console.error('분석 중 오류 발생:', error);
         resultArea.innerHTML = `<p class="error">분석에 실패했습니다: ${error.message}</p>`;
     } finally {
-        // 로딩 UI 숨기기
-        loadingIndicator.classList.add('hidden');
+        // ... (로딩 UI 숨기기) ...
     }
 });
 
