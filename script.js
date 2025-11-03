@@ -1,5 +1,6 @@
 // ===================================================
 // ❗️❗️ script.js 파일 전체를 이 코드로 덮어쓰세요 ❗️❗️
+// (월 1회 제한 제거, 결과 표시 버그 수정, 오타 수정)
 // ===================================================
 
 // HTML 요소들을 가져옵니다.
@@ -43,6 +44,20 @@ const languageChoices = new Choices(languageSelectElement, {
 // '분석 시작!' 버튼 클릭 이벤트
 analyzeButton.addEventListener('click', async () => {
     
+    // ❗️❗️ [수정 1] 월 1회 사용 제한 로직 (const lastUsed... 부터) 삭제 ❗️❗️
+    /*
+    // 월 1회 사용 제한 로직
+    const lastUsed = localStorage.getItem('lastAnalysisTime');
+    const now = new Date();
+    if (lastUsed) {
+        const lastUsedDate = new Date(parseInt(lastUsed));
+        if (now.getFullYear() === lastUsedDate.getFullYear() && now.getMonth() === lastUsedDate.getMonth()) {
+            alert('이 기능은 한 달에 한 번만 사용할 수 있습니다.');
+            return; 
+        }
+    }
+    */
+
     // 로딩 UI 표시
     loadingIndicator.classList.remove('hidden');
     resultArea.innerHTML = '';
@@ -51,6 +66,7 @@ analyzeButton.addEventListener('click', async () => {
         // --- 1. 사용자가 선택한 과목 데이터 수집 ---
         const completedCourses = [];
 
+        // (데이터 수집 로직은 모두 동일)
         // 1-1. 전공 필수
         document.querySelectorAll('#required-courses-list input[type="checkbox"]:checked').forEach(checkbox => {
             completedCourses.push(checkbox.value);
@@ -82,7 +98,7 @@ analyzeButton.addEventListener('click', async () => {
             }
         }
         
-        // 1-8. 음미대/미학과 (❗️ 1단계에서 HTML ID를 수정했습니다)
+        // 1-8. 음미대/미학과
         const extraAnSCheckbox = document.getElementById('extra-artsandsports-checkbox');
         const extraAnSCountInput = document.getElementById('extra-artsandsports-count'); 
         
@@ -93,11 +109,9 @@ analyzeButton.addEventListener('click', async () => {
             }
         }
 
-        // ❗️❗️❗️ [핵심 수정 1] allText 변수를 모든 수집이 끝난 후 선언
         const allText = completedCourses.join(' ');
 
         // --- 2. 비교과 체크리스트 데이터 수집 ---
-        // ❗️❗️❗️ [핵심 수정 2] 누락된 비교과 항목 모두 포함
         const checklistData = {
             'volunteer': document.getElementById('volunteer').checked,
             'cpr': document.getElementById('cpr').checked,
@@ -109,31 +123,26 @@ analyzeButton.addEventListener('click', async () => {
             'teps': document.getElementById('teps').checked,
         };
 
-        // ❗️❗️❗️ [디버깅 코드] ❗️❗️❗️
-        // 서버로 전송하기 직전의 데이터를 확인합니다.
-        console.log("===== 디버깅 시작 =====");
-        console.log("전송할 allText:", allText);
-        console.log("전송할 checklistData:", checklistData);
-        console.log("=====================");
-        
         // --- 3. 백엔드로 데이터 전송 ---
-        const response = await fetch('/api/analyze', {
+        // (❗️ Vercel 사용 기준인 /api/analyze 경로로 수정했습니다)
+        // (만약 Netlify를 쓰신다면 '/.netlify/functions/analyze'로 다시 변경하세요)
+        const response = await fetch('/api/analyze', { 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: allText, checklist: checklistData }), // ✅ 올바른 데이터 전송
+            body: JSON.stringify({ text: allText, checklist: checklistData }),
         });
 
         if (!response.ok) {
-            // ❗️ 여기가 130번째 줄 근처입니다. 서버가 멈추면 이 코드가 실행됩니다.
             throw new Error('서버에서 오류가 발생했습니다.'); 
         }
 
-        const responseData = await response.json(); // 1. 변수 이름을 data -> responseData로 변경
+        // ❗️❗️ [수정 2] "결과 안보임" 버그 수정 ❗️❗️
+        // 서버가 보낸 { analysisResult: ... } 객체에 접근합니다.
+        const responseData = await response.json();
+        displayResults(responseData.analysisResult); // 'data' 대신 'responseData.analysisResult'를 전달
 
-        // 2. responseData '안에 있는' analysisResult 객체를 전달
-        displayResults(responseData.analysisResult);
-
-        localStorage.setItem('lastAnalysisTime', now.getTime());
+        // ❗️❗️ [수정 3] 월 1회 사용 제한 로직 (localStorage.setItem...) 삭제 ❗️❗️
+        // localStorage.setItem('lastAnalysisTime', now.getTime());
 
     } catch (error) {
         console.error('분석 중 오류 발생:', error);
@@ -143,7 +152,7 @@ analyzeButton.addEventListener('click', async () => {
     }
 });
 
-// 분석 결과를 HTML로 만들어 화면에 표시하는 함수 (수정 없음)
+// 분석 결과를 HTML로 만들어 화면에 표시하는 함수
 function displayResults(data) {
     let html = '<h2>🔍 분석 결과</h2>';
     const categoryOrder = ["전공 필수", "전공 선택", "필수 교양", "학문의 세계", "예체능", "기타 이수 과목", "비교과"];
@@ -154,6 +163,13 @@ function displayResults(data) {
         'cpm': 'CPM(맞춤형 교육과정) 이수', 'teps': 'TEPS 453점, IBT TOEFL 114점 이상'
     };
     
+    // ❗️❗️ [수정 4] 데이터가 null일 경우를 대비한 방어 코드 ❗️❗️
+    // (서버가 멈추진 않았지만, analysisResult가 비어있을 경우)
+    if (!data) {
+        resultArea.innerHTML = '<p class="error">분석 결과를 받아오는 데 실패했습니다.</p>';
+        return;
+    }
+
     for (const category of categoryOrder) {
         if (!data[category]) continue;
         const details = data[category];
@@ -218,6 +234,8 @@ function displayResults(data) {
                         const coursesInGroup = details.recommendedCoursesByGroup[groupName] || [];
                         const elementId = `courses-list-${groupName.replace(/[^a-zA-Z0-9]/g, '')}`; 
                         html += `<button class="toggle-button" onclick="toggleCourseList('${elementId}')">${groupName} 과목 목록 보기 (${coursesInGroup.length}개)</button>`;
+                        
+                        // ❗️❗️ [수정 5] "coursesInGrop" 오타 수정 ❗️❗️
                         html += `<div id="${elementId}" class="course-list-hidden" style="display: none; margin: 5px 0 10px 10px; padding: 8px; background: #f9f9f9; border: 1px solid #eee; border-radius: 4px;">${coursesInGroup.join(', ')}</div>`;
                     }
                     html += '</div>';
@@ -235,9 +253,8 @@ function displayResults(data) {
                 const elecCompleted = [];
                 const requiredElecCount = 2;
 
-                // [수정] 미체크 항목을 올바르게 찾도록 수정
                 for (const key in details.data) {
-                    if (details.data[key]) { // true (체크된) 항목만 처리
+                    if (details.data[key]) { 
                         const label = checklistLabels[key];
                         if (requiredKeys.includes(key)) {
                             reqCompleted.push(label);
@@ -247,7 +264,7 @@ function displayResults(data) {
                     }
                 }
                 for (const key of requiredKeys) {
-                    if (!details.data[key]) { // false (미체크)
+                    if (!details.data[key]) { 
                         reqIncomplete.push(checklistLabels[key]);
                     }
                 }
