@@ -224,11 +224,12 @@ export default async function handler(req, res) {
     const isGroupMet = remainingGroups.length === 0;
 
     analysisResult["지성의 열쇠"] = {
-      description: "3개 영역 모두에서 3학점 이상, 총 9학점 이상 이수해야 합니다. (모든 과목 3학점)",
+     description: "3개 영역 모두에서 3학점 이상, 총 9학점 이상 이수해야 합니다. (모든 과목 3학점)",
       displayType: "academia_group_count",
       completedCourses: completedAcademiaCourses,
-      completedGroupCount: allAcademiaGroups.length - remainingGroups.length,
+      completedGroupCount: allAcademiaGroups.length - remainingGroups.length, 
       requiredGroupCount: allAcademiaGroups.length, 
+      totalAcademiaCredits,
       requiredCredits: requiredAcademiaCredits,
       remainingGroups,
       recommendedCoursesByGroup,
