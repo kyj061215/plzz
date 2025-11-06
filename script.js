@@ -241,7 +241,28 @@ function displayResults(data) {
                 const isOtherCompleted = details.remainingCredits === 0;
                 html += `<p class="summary ${isOtherCompleted ? 'completed' : 'in-progress'}"><strong>상태: ${details.requiredCredits}학점 중 ${details.completedCredits}학점 이수 (${details.remainingCredits}학점 남음) ${isOtherCompleted ? '✔️' : ''}</strong></p>`;
                 break;
+                case 'total_credit_summary':
+                const isTotalCompleted = details.completedCredits >= details.requiredCredits;
+                const totalRemaining = Math.max(0, details.requiredCredits - details.completedCredits);
                 
+                // 1. 이수 학점 및 요구 학점 표시
+                html += `<p class="summary ${isTotalCompleted ? 'completed' : 'in-progress'}">
+                             <strong>총 이수 학점: ${details.completedCredits}학점 (${details.requiredCredits}학점 중)</strong>
+                         </p>`;
+                
+                // 2. 요구 학점 구성 상세 내역 (analyze.js에서 보낸 description 사용)
+                // analyze.js에서 description: "총 요구 학점 74학점 (교양 41+전공 26+기타 7)"로 보냈으므로, 
+                // 해당 내용이 이 부분을 통해 표시됩니다.
+                html += `<p style="margin-top: 5px; font-size: 0.9em; color: #555;">${details.description}</p>`;
+
+                // 3. 충족 여부 및 남은 학점 표시
+                if (!isTotalCompleted) {
+                    html += `<p style="margin-top: 10px;"><strong>⚠️ ${totalRemaining}학점</strong>이 추가로 필요합니다.</p>`;
+                } else {
+                    html += `<p style="margin-top: 10px; color: #2b642e;">✔️ **졸업 요구 학점 충족!**</p>`;
+                }
+                break;
+        }
             case 'simple_checklist':
                 const completedItems = details.completed.map(key => details.labels[key]);
                 html += `<p><strong>✅ 완료한 요건:</strong> ${completedItems.length > 0 ? completedItems.join(', ') : '없음'}</p>`;
