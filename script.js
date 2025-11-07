@@ -188,54 +188,53 @@ case 'credit_count':
                 }
                 break;
 
-case 'academia_extension_group_count': // 💡 새로운 displayType 처리
-                const isGroupMet = details.isGroupMet; 
-                const totalCoreGroups = details.requiredGroupCount;
-                const completedCoreGroups = details.completedGroupCount;
-                const remainingGroupsCount = Math.max(0, totalCoreGroups - completedCoreGroups); 
-                const totalExtensionCourses = details.completedExtensionCourses.length;
+case 'academia_extension_group_count': 
+    const isGroupMet = details.isGroupMet;  
+    // ❌ isCreditMet 삭제
+    const totalCoreGroups = details.requiredGroupCount;
+    const completedCoreGroups = details.completedGroupCount;
+    const remainingGroupsCount = Math.max(0, totalCoreGroups - completedCoreGroups);  
+    // ❌ remainingCredits 삭제
+    const totalExtensionCourses = details.completedExtensionCourses.length;
 
-                // 1. 💡 업데이트: 필수 영역 충족 여부만 간결하게 표시
-                 html += `<p class="summary ${isGroupMet ? 'completed' : 'in-progress'}">
-                             <strong>지성의 열쇠 (3개 영역): ${totalCoreGroups}개 영역 중 ${completedCoreGroups}개 완료 (${remainingGroupsCount}개 남음) ${isGroupMet ? '✔️' : ''}</strong>
-                         </p>`;
-                // 2. 필수 영역 학점 합계
-                html += `<p class="summary ${isCreditMet ? 'completed' : 'in-progress'}"><strong>지성의 열쇠 (필수) 학점: ${details.requiredCredits}학점 중 ${details.totalAcademiaCredits || 0}학점 이수 (${remainingCredits}학점 남음) ${isCreditMet ? '✔️' : ''}</strong></p>`; 
-                // 3. 지성의 확장 학점 (새로운 정보)
-                html += `<p class="summary completed"><strong>지성의 확장 학점: ${details.totalExtensionCredits}학점 이수 (총 ${totalExtensionCourses}과목)</strong></p>`; 
+    // 1. 💡 필수 영역 충족 여부만 간결하게 표시
+    html += `<p class="summary ${isGroupMet ? 'completed' : 'in-progress'}">
+                <strong>지성의 열쇠 (3개 영역): ${totalCoreGroups}개 영역 중 ${completedCoreGroups}개 완료 (${remainingGroupsCount}개 남음) ${isGroupMet ? '✔️' : ''}</strong>
+            </p>`;
+    // 2. 지성의 확장 학점 (새로운 정보) - 유지
+    html += `<p class="summary completed"><strong>지성의 확장 학점: ${details.totalExtensionCredits}학점 이수 (총 ${totalExtensionCourses}과목)</strong></p>`;  
+    
+    // 4. 이수한 과목 상세 - 유지
+    if (details.completedAcademiaCourses.length > 0) {
+        const completedAcademiaList = details.completedAcademiaCourses.map(c => `${c.name} (${c.group})`).join(', ');
+        html += `<p><strong>✅ 지성의 열쇠 이수 과목 (4개 영역 분류):</strong> ${completedAcademiaList}</p>`;
+    }
+    if (details.completedExtensionCourses.length > 0) {
+        const completedExtensionList = details.completedExtensionCourses.map(c => `${c.name} (${c.credit}학점)`).join(', ');
+        html += `<p><strong>✅ 지성의 확장 이수 과목:</strong> ${completedExtensionList}</p>`;
+    }
 
-                // 4. 이수한 과목 상세
-                if (details.completedAcademiaCourses.length > 0) {
-                    // 지성의 열쇠 이수 과목 (과학적 사고 포함)
-                    const completedAcademiaList = details.completedAcademiaCourses.map(c => `${c.name} (${c.group})`).join(', ');
-                    html += `<p><strong>✅ 지성의 열쇠 이수 과목 (4개 영역 분류):</strong> ${completedAcademiaList}</p>`;
-                }
-                if (details.completedExtensionCourses.length > 0) {
-                    // 지성의 확장 이수 과목
-                    const completedExtensionList = details.completedExtensionCourses.map(c => `${c.name} (${c.credit}학점)`).join(', ');
-                    html += `<p><strong>✅ 지성의 확장 이수 과목:</strong> ${completedExtensionList}</p>`;
-                }
-
-                if (!isGroupMet && details.remainingGroups.length > 0) {
-                    html += `<p><strong>📝 채워야 할 영역:</strong> ${details.remainingGroups.join(', ')}</p>`;
-                    html += '<div class="recommendation-area multi-button-area">';
-                    html += '<strong>💡 영역별 들을 수 있는 교양 (클릭하여 확인):</strong>';
-                    for (const groupName of details.remainingGroups) {
-                        const elementId = `courses-list-${encodeURIComponent(groupName)}`;
-                        html += `<button class="toggle-button" onclick="toggleCourseList('${elementId}')">〈${groupName}〉 과목 목록</button>`;
-                    }
-                    for (const groupName of details.remainingGroups) {
-                        const elementId = `courses-list-${encodeURIComponent(groupName)}`;
-                        const coursesInGroup = details.recommendedCoursesByGroup[groupName] || [];
-                        const courseListHtml = coursesInGroup.map(c => `<li>${c}</li>`).join('');
-                        html += `<div id="${elementId}" class="course-list-hidden">
-                                    <h4 class="list-title"><span class="highlight">〈${groupName}〉 과목 목록</span></h4>
-                                    <ul class="recommended-list">${courseListHtml}</ul>
-                                </div>`;
-                    }
-                    html += '</div>';
-                }
-                break;
+    // 5. 미이수 영역 안내 - 유지
+    if (!isGroupMet && details.remainingGroups.length > 0) {
+        html += `<p><strong>📝 채워야 할 영역:</strong> ${details.remainingGroups.join(', ')}</p>`;
+        html += '<div class="recommendation-area multi-button-area">';
+        html += '<strong>💡 영역별 들을 수 있는 교양 (클릭하여 확인):</strong>';
+        for (const groupName of details.remainingGroups) {
+            const elementId = `courses-list-${encodeURIComponent(groupName)}`;
+            html += `<button class="toggle-button" onclick="toggleCourseList('${elementId}')">〈${groupName}〉 과목 목록</button>`;
+        }
+        for (const groupName of details.remainingGroups) {
+            const elementId = `courses-list-${encodeURIComponent(groupName)}`;
+            const coursesInGroup = details.recommendedCoursesByGroup[groupName] || [];
+            const courseListHtml = coursesInGroup.map(c => `<li>${c}</li>`).join('');
+            html += `<div id="${elementId}" class="course-list-hidden">
+                        <h4 class="list-title"><span class="highlight">〈${groupName}〉 과목 목록</span></h4>
+                        <ul class="recommended-list">${courseListHtml}</ul>
+                    </div>`;
+        }
+        html += '</div>';
+    }
+    break;
 
             case 'credit_count_simple':
                 const isOtherCompleted = details.remainingCredits === 0;
