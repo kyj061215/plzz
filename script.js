@@ -24,7 +24,6 @@ const academiaChoices = new Choices(academiaSelectElement, {
 });
 
 // 💡 업데이트: 예체능 1/2학점 목록 초기화
-// index.html에서 id가 arts-and-sports-select에서 arts-and-sports-select-1-2로 변경됨
 const artsSelectElement_1_2 = document.getElementById('arts-and-sports-select-1-2');
 const artsChoices_1_2 = new Choices(artsSelectElement_1_2, {
     removeItemButton: true,
@@ -42,7 +41,7 @@ const artsChoices_3 = new Choices(artsSelectElement_3, {
     searchPlaceholderValue: '과목 검색...',
 });
 
-// ❌ 기존 artsChoices 초기화 코드는 삭제되었습니다.
+// ❌ 기존 artsSelectElement 및 artsChoices 초기화 코드는 이제 삭제되었습니다.
 
 const languageSelectElement = document.getElementById('foreign-language-select');
 const languageChoices = new Choices(languageSelectElement, {
@@ -60,6 +59,7 @@ analyzeButton.addEventListener('click', async () => {
     resultArea.innerHTML = '';
     
     try {
+        // 💡 업데이트: completedCourses 배열을 string이 아닌 array로 정의하여 push가 가능하도록 함
         const completedCourses = [];
 
         document.querySelectorAll('#required-courses-list input[type="checkbox"]:checked').forEach(checkbox => {
@@ -297,72 +297,4 @@ case 'academia_extension_group_count':
             case 'count_checklist':
                 const isElecCompleted = details.neededCount === 0;
                 html += `<p class="summary ${isElecCompleted ? 'completed' : 'in-progress'}">
-                             <strong>상태: ${details.requiredCount}개 이상 중 ${details.completedCount}개 완료 (${details.neededCount}개 더 필요) ${isElecCompleted ? '✔️' : ''}</strong>
-                         </p>`;
-                
-                if (details.completed.length > 0) {
-                    const completedElecList = details.completed.map(key => details.labels[key]);
-                    html += `<p><strong>✅ 완료한 요건:</strong> ${completedElecList.join(', ')}</p>`;
-                }
-                break;
-        }
-        html += `</div></div>`;
-    }
-}
-
-
-function toggleCourseList(elementId) {
-    const clickedElement = document.getElementById(elementId);
-    if (!clickedElement) return; 
-
-    const isAlreadyVisible = clickedElement.classList.contains('visible');
-
-    const allOpenLists = document.querySelectorAll('.course-list-hidden.visible');
-    allOpenLists.forEach(list => {
-        list.classList.remove('visible');
-    });
-
-    if (!isAlreadyVisible) {
-        clickedElement.classList.add('visible');
-    }
-}
-// ❗️❗️ [추가] 캡쳐 기능 함수 ❗️❗️
-/**
- * 'result-area' div를 캡쳐하여 '졸업요건_분석결과.png'로 저장합니다.
- */
-function captureResults() {
-    const captureButton = document.getElementById('capture-button');
-    if (captureButton) {
-        captureButton.innerText = '저장 중...';
-        captureButton.disabled = true;
-    }
-
-    const resultArea = document.getElementById('result-area');
-    
-    // 캡쳐 시 해상도를 2배로 높여 선명하게 저장
-    html2canvas(resultArea, { scale: 2 }) 
-        .then(canvas => {
-            // 임시 링크 생성
-            const link = document.createElement('a');
-            link.href = canvas.toDataURL('image/png');
-            link.download = '졸업요건_분석결과.png';
-            
-            // 링크 클릭 (다운로드) 및 제거
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            // 버튼 텍스트 복구
-            if (captureButton) {
-                captureButton.innerText = '결과 이미지로 저장';
-                captureButton.disabled = false;
-            }
-        })
-      .catch(err => {
-            console.error('캡쳐 중 오류 발생:', err);
-            if (captureButton) {
-                captureButton.innerText = '저장 실패. 다시 시도하세요.';
-                captureButton.disabled = false;
-            }
-        });
-}
+                             <strong>상태: ${details.requiredCount}개 이상 중 ${details.completedCount}개 완료 (${details.neededCount}개 더
