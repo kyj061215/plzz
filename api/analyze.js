@@ -10,6 +10,20 @@ const createSafeRegex = (searchTerm) => {
     // 'g' 플래그는 전역 검색을 의미하지만, 여기서는 find/test 목적으로 사용합니다.
     return new RegExp(escapedTerm, 'g'); 
 };
+// 💡 겹치는 41개 과목 목록 (지성 교양과 예체능 3학점에 모두 포함됨)
+const allSharedArtsCourses = [
+    "공연예술의 이해", "대중예술의 이해", "동시대 미술과 현장", "디자인과 생활", 
+    "르네상스의 세계", "미국문화와 현대사회의 이해", "미술론입문", "상상력과 문화", 
+    "서양연극의 이해", "스페인어권 문화의 이해", "아시아미술의 이해", "영미 문화의 이해", 
+    "영상예술의 이해", "예술과 과학", "예술과 사회", "음악과 사회", 
+    "음악론입문", "종교와 예술", "중국어권의 사회와 문화", "창작의 세계", 
+    "프랑스어권 문화의 이해", "한국의 신화", "한자와 동양문화", "현대미술의 이해", 
+    "현대종교와 문화", "동양예술론입문", "예술과 신화", "예술의 가치와 비평", 
+    "페미니즘 미학과 예술", "독일어권 문화의 이해", "러시아인의 삶과 문화", "드라마의 이해와 감상", 
+    "미술 명작의 이해", "서양미술의 이해", "서양음악의 이해", "음악 속의 철학", 
+    "음악의 원리", "종교와 영화", "한국음악의 이해", "현대문화와 기독교", 
+    "현대음악의 이해"
+];
 
 // 0. '지성의 열쇠' 과목 데이터 
 const allAcademiaCourses = [
@@ -299,11 +313,14 @@ export default async function handler(req, res) {
         const coreAcademiaGroups = ["문화 해석과 상상", "역사적 탐구와 철학적 사유", "인간의 이해와 사회 분석"];
         const allAcademiaGroupNames = [...coreAcademiaGroups, "과학적 사고와 응용 분야"]; // All 4 Academia groups
 
-        // 1. 지성의 열쇠 (4개 영역) 분석 - Accumulate all credits by group
+// 1. 지성의 열쇠 (4개 영역) 분석 - Accumulate all credits by group
         allAcademiaCourses.forEach(course => {
-            // 💡 수정: 정규 표현식 매칭 로직 적용
             const courseRegex = createSafeRegex(course.name);
-            if (allText.match(courseRegex)) {
+            // 💡 배타적 규칙: 겹치는 과목이 예체능으로 선택되지 않았을 때만 지성 교양 학점에 반영
+            const isSelectedAsArts = allSharedArtsCourses.includes(course.name) && 
+                                     allText.match(createSafeRegex(course.name + "-3학점_예체능"));
+
+            if (allText.match(courseRegex) && !isSelectedAsArts) { 
                 completedAcademiaCourses.push(course);
                 completedGroupCredits[course.group] = (completedGroupCredits[course.group] || 0) + 3;
             }
@@ -311,9 +328,12 @@ export default async function handler(req, res) {
         
         // 2. 지성의 확장 분석 (학점 예외 처리 포함)
         allExtensionCourses.forEach(course => {
-            // 💡 수정: 정규 표현식 매칭 로직 적용
             const courseRegex = createSafeRegex(course.name);
-            if (allText.match(courseRegex)) {
+            // 💡 배타적 규칙: 겹치는 과목이 예체능으로 선택되지 않았을 때만 지성의 확장 학점에 반영
+            const isSelectedAsArts = allSharedArtsCourses.includes(course.name) && 
+                                     allText.match(createSafeRegex(course.name + "-3학점_예체능"));
+                                     
+            if (allText.match(courseRegex) && !isSelectedAsArts) {
                 completedExtensionCourses.push(course);
                 totalExtensionCredits += course.credit;
             }
@@ -408,12 +428,14 @@ export default async function handler(req, res) {
         // 예체능에서 분석을 위해 2학점 예체능 실기 과목만 따로 빼놓은 부분입니다. 해당 부분 수정을 원하는 경우, 아래를 수정해주세요!
         const twoCreditArts = ["도예의 기초", "소묘의 기초", "수묵화의 기초", "수채화의 기초"];
 
+        const threeCreditArts = allSharedArtsCourses;
+        
         const requiredArtsCredits = 3;
         let totalArtsCredits = 0;
         const completedArtsCourses = [];
         const recommendedArtsCourses = [];
 
-        // 💡 수정: 정규 표현식 매칭 로직 적용
+// 1. 1/2학점 강의 계산
         allArtsAndSportsCourses.forEach(course => {
            const courseRegex = createSafeRegex(course);
             if (allText.match(courseRegex)) {
@@ -423,8 +445,22 @@ export default async function handler(req, res) {
                 recommendedArtsCourses.push(course);
             }
         });
+        
+        // 2. 💡 새로 추가된 3학점 강의 계산 (겹치는 과목)
+        threeCreditArts.forEach(course => {
+            // 💡 3학점 예체능으로 선택된 경우를 찾기 위해 고유한 value를 사용
+            const artsValue = course + "-3학점_예체능";
+            const courseRegex = createSafeRegex(artsValue);
 
-        // 💡 수정: 정규 표현식 매칭 로직 적용
+            if (allText.match(courseRegex)) {
+                completedArtsCourses.push(course + " (3학점)"); // 결과 표시를 위해 3학점 명시
+                totalArtsCredits += 3;
+            } else {
+                // 추천 목록은 1/2학점 강의 목록에서만 처리 (로직 단순화)
+            }
+        });
+
+        // 3. 음미대/미학과 전공 학점 계산 (기존 로직 유지)
         const extraArtsCredits = (allText.match(createSafeRegex("음미대, 미학과 전공/교양")) || []).length;
         if (extraArtsCredits > 0) {
             totalArtsCredits += extraArtsCredits;
@@ -434,7 +470,7 @@ export default async function handler(req, res) {
         const remainingArtsCredits = Math.max(0, requiredArtsCredits - totalArtsCredits);
 
         analysisResult["예체능"] = {
-            description: "3학점 이상 이수해야 합니다. <br>*도예의 기초, 소묘의 기초, 수묵화의 기초, 수채화의 기초-2학점, 그외 1학점",
+            description: "3학점 이상 이수해야 합니다. <br>*도예의 기초, 소묘의 기초, 수묵화의 기초, 수채화의 기초-2학점, 그외 1학점, 3학점 과목 별도.",
             displayType: "credit_count", // '전공 선택'과 동일한 표시 형식을 사용
             completed: completedArtsCourses,
             recommended: recommendedArtsCourses,
@@ -442,7 +478,7 @@ export default async function handler(req, res) {
             requiredCredits: requiredArtsCredits,
             remainingCredits: remainingArtsCredits
         };
-
+        
         // ======================================================
         // 8. "필수 수료 요건" 분석 파트입니다. 필수 수료 요건이 변경될 경우, 아래를 수정해주세요! 작은 따옴표 안은 그대로 유지하고, 오른쪽의 항목명만 수정하시길 바랍니다!
         // ======================================================
