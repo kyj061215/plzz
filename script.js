@@ -22,7 +22,8 @@ const academiaChoices = new Choices(academiaSelectElement, {
     placeholderValue: '수강한 지성 교양 과목을 검색 및 선택하세요',
     searchPlaceholderValue: '과목 검색...',
 });
-// 💡 업데이트: 예체능 1/2학점 목록 초기화 (기존 id: arts-and-sports-select를 변경)
+
+// 💡 업데이트: 예체능 1/2학점 목록 초기화 (ID: arts-and-sports-select-1-2)
 const artsSelectElement_1_2 = document.getElementById('arts-and-sports-select-1-2');
 const artsChoices_1_2 = new Choices(artsSelectElement_1_2, {
     removeItemButton: true,
@@ -39,8 +40,6 @@ const artsChoices_3 = new Choices(artsSelectElement_3, {
     placeholderValue: '3학점 강의 선택',
     searchPlaceholderValue: '과목 검색...',
 });
-
-// ❌ 제거: 기존 artsChoices 초기화 코드는 삭제했습니다.
 
 const languageSelectElement = document.getElementById('foreign-language-select');
 const languageChoices = new Choices(languageSelectElement, {
@@ -110,8 +109,6 @@ analyzeButton.addEventListener('click', async () => {
             }
         }
         
-        // 💡 기타 학점 입력 제거
-
         const checklistData = {
             'volunteer': document.getElementById('volunteer').checked,
             'cpr': document.getElementById('cpr').checked,
@@ -307,7 +304,6 @@ case 'academia_extension_group_count':
         }
         html += `</div></div>`;
     }
-    resultArea.innerHTML = html;
 }
 
 
