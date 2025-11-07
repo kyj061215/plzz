@@ -190,15 +190,15 @@ case 'credit_count':
 
 case 'academia_extension_group_count': // 💡 새로운 displayType 처리
                 const isGroupMet = details.isGroupMet; 
-                const isCreditMet = details.totalAcademiaCredits >= details.requiredCredits;
                 const totalCoreGroups = details.requiredGroupCount;
                 const completedCoreGroups = details.completedGroupCount;
                 const remainingGroupsCount = Math.max(0, totalCoreGroups - completedCoreGroups); 
-                const remainingCredits = Math.max(0, details.requiredCredits - details.totalAcademiaCredits);
                 const totalExtensionCourses = details.completedExtensionCourses.length;
 
-                // 1. 필수 영역 충족 여부 (문화, 역사, 인간)
-                html += `<p class="summary ${isGroupMet ? 'completed' : 'in-progress'}"><strong>필수 영역 (3개): ${totalCoreGroups}개 중 ${completedCoreGroups}개 영역 3학점 이상 이수 (${remainingGroupsCount}개 영역 남음) ${isGroupMet ? '✔️' : ''}</strong></p>`;
+                // 1. 💡 업데이트: 필수 영역 충족 여부만 간결하게 표시
+                 html += `<p class="summary ${isGroupMet ? 'completed' : 'in-progress'}">
+                             <strong>지성의 열쇠 (3개 영역): ${totalCoreGroups}개 영역 중 ${completedCoreGroups}개 완료 (${remainingGroupsCount}개 남음) ${isGroupMet ? '✔️' : ''}</strong>
+                         </p>`;
                 // 2. 필수 영역 학점 합계
                 html += `<p class="summary ${isCreditMet ? 'completed' : 'in-progress'}"><strong>지성의 열쇠 (필수) 학점: ${details.requiredCredits}학점 중 ${details.totalAcademiaCredits || 0}학점 이수 (${remainingCredits}학점 남음) ${isCreditMet ? '✔️' : ''}</strong></p>`; 
                 // 3. 지성의 확장 학점 (새로운 정보)
