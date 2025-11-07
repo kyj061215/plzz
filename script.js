@@ -84,13 +84,7 @@ analyzeButton.addEventListener('click', async () => {
                 completedCourses.push('음미대, 미학과 전공/교양');
             }
         }
-        const extraCreditsInput = document.getElementById('extra-credits-input');
-        if (extraCreditsInput && extraCreditsInput.value) {
-             const count = parseInt(extraCreditsInput.value, 10) || 0;
-             for (let i = 0; i < count; i++) {
-                 completedCourses.push('기타 학점'); // 1학점 = "기타 학점" 문자열 1개
-             }
-        }
+       
 
         const allText = completedCourses.join(' ');
 
