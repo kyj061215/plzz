@@ -22,13 +22,26 @@ const academiaChoices = new Choices(academiaSelectElement, {
     placeholderValue: '수강한 지성 교양 과목을 검색 및 선택하세요',
     searchPlaceholderValue: '과목 검색...',
 });
-const artsSelectElement = document.getElementById('arts-and-sports-select');
-const artsChoices = new Choices(artsSelectElement, {
+// 💡 업데이트: 예체능 1/2학점 목록 초기화 (기존 id: arts-and-sports-select를 변경)
+const artsSelectElement_1_2 = document.getElementById('arts-and-sports-select-1-2');
+const artsChoices_1_2 = new Choices(artsSelectElement_1_2, {
     removeItemButton: true,
     placeholder: true,
-    placeholderValue: '수강한 과목을 검색 및 선택하세요',
+    placeholderValue: '1/2학점 강의 선택',
     searchPlaceholderValue: '과목 검색...',
 });
+
+// 💡 새로 추가: 예체능 3학점 목록 초기화
+const artsSelectElement_3 = document.getElementById('arts-and-sports-select-3');
+const artsChoices_3 = new Choices(artsSelectElement_3, {
+    removeItemButton: true,
+    placeholder: true,
+    placeholderValue: '3학점 강의 선택',
+    searchPlaceholderValue: '과목 검색...',
+});
+
+// ❌ 제거: 기존 artsChoices 초기화 코드는 삭제했습니다.
+
 const languageSelectElement = document.getElementById('foreign-language-select');
 const languageChoices = new Choices(languageSelectElement, {
     removeItemButton: true,
@@ -57,15 +70,27 @@ analyzeButton.addEventListener('click', async () => {
         }); 
         const selectedLanguages = languageChoices.getValue(true);
         completedCourses.push(...selectedLanguages);
+        
+        // 4. 지성의 열쇠 & 지성의 확장 값 수집
         const selectedAcademia = academiaChoices.getValue(true);
         completedCourses.push(...selectedAcademia);
+        
+        // 5. 베리타스 단일 체크박스 값 수집
         const veritasCheckbox = document.getElementById('veritas-completed-check');
         if (veritasCheckbox && veritasCheckbox.checked) {
-        // 체크되면, analyze.js에서 3학점으로 인식할 고유 ID를 추가
-        completedCourses.push(veritasCheckbox.value); 
+            completedCourses.push(veritasCheckbox.value); 
         }
-        const selectedArts = artsChoices.getValue(true);
-        completedCourses.push(...selectedArts);
+        
+        // 6. 예체능 1/2학점 목록의 값 수집
+        const selectedArts_1_2 = artsChoices_1_2.getValue(true);
+        completedCourses.push(...selectedArts_1_2);
+
+        // 6. 예체능 3학점 목록의 값 수집 (고유 value 포함)
+        const selectedArts_3 = artsChoices_3.getValue(true);
+        completedCourses.push(...selectedArts_3);
+
+        // 💡 중요: 정규식 매칭을 위해 각 과목명 주변에 공백을 추가하여 안정성 확보
+        const allText = ' ' + completedCourses.join(' ') + ' ';
         
         const otherCollegeCheckbox = document.getElementById('other-college-checkbox');
         const otherCollegeCountInput = document.getElementById('other-college-count');
@@ -84,9 +109,8 @@ analyzeButton.addEventListener('click', async () => {
                 completedCourses.push('음미대, 미학과 전공/교양');
             }
         }
-       
-
-        const allText = completedCourses.join(' ');
+        
+        // 💡 기타 학점 입력 제거
 
         const checklistData = {
             'volunteer': document.getElementById('volunteer').checked,
@@ -190,11 +214,9 @@ case 'credit_count':
 
 case 'academia_extension_group_count': 
     const isGroupMet = details.isGroupMet;  
-    // ❌ isCreditMet 삭제
     const totalCoreGroups = details.requiredGroupCount;
     const completedCoreGroups = details.completedGroupCount;
     const remainingGroupsCount = Math.max(0, totalCoreGroups - completedCoreGroups);  
-    // ❌ remainingCredits 삭제
     const totalExtensionCourses = details.completedExtensionCourses.length;
 
     // 1. 💡 필수 영역 충족 여부만 간결하게 표시
