@@ -178,7 +178,7 @@ export default async function handler(req, res) {
 
         // 💡 수정: 정규 표현식 매칭 로직 적용
         allRequiredCourses.forEach(course => {
-            const courseRegex = new RegExp(`\\b${course}\\b`);
+            const courseRegex = createSafeRegex(course);
             if (allText.match(courseRegex)) completedRequired.push(course);
             else remainingRequired.push(course);
         });
@@ -210,7 +210,7 @@ export default async function handler(req, res) {
 
         // 💡 수정: 정규 표현식 매칭 로직 적용
         allElectiveCourses.forEach(course => {
-            const courseRegex = new RegExp(`\\b${course}\\b`);
+            const courseRegex = createSafeRegex(course);
             if (allText.match(courseRegex)) {
                 completedElectiveCourses.push(course);
                 totalElectiveCredits += twoCreditElectives.includes(course) ? 2 : 3;
@@ -257,7 +257,7 @@ export default async function handler(req, res) {
 
         // 💡 수정: 정규 표현식 매칭 로직 적용
         fixedLiberalArts.forEach(course => {
-            const courseRegex = new RegExp(`\\b${course}\\b`);
+           const courseRegex = createSafeRegex(course);
             if (allText.match(courseRegex)) completedLiberalArts.push(course);
             else remainingLiberalArts.push(course);
         });
@@ -265,7 +265,7 @@ export default async function handler(req, res) {
         let foreignLanguageCount = 0;
         // 💡 수정: 정규 표현식 매칭 로직 적용
         foreignLanguageOptions.forEach(lang => {
-            const langRegex = new RegExp(`\\b${lang}\\b`);
+            const langRegex = createSafeRegex(lang);
             if (allText.match(langRegex)) {
                 completedLiberalArts.push(lang);
                 foreignLanguageCount++;
@@ -300,7 +300,7 @@ export default async function handler(req, res) {
         // 1. 지성의 열쇠 (4개 영역) 분석 - Accumulate all credits by group
         allAcademiaCourses.forEach(course => {
             // 💡 수정: 정규 표현식 매칭 로직 적용
-            const courseRegex = new RegExp(`\\b${course.name}\\b`);
+            const courseRegex = createSafeRegex(course.name);
             if (allText.match(courseRegex)) {
                 completedAcademiaCourses.push(course);
                 completedGroupCredits[course.group] = (completedGroupCredits[course.group] || 0) + 3;
@@ -310,7 +310,7 @@ export default async function handler(req, res) {
         // 2. 지성의 확장 분석 (학점 예외 처리 포함)
         allExtensionCourses.forEach(course => {
             // 💡 수정: 정규 표현식 매칭 로직 적용
-            const courseRegex = new RegExp(`\\b${course.name}\\b`);
+            const courseRegex = createSafeRegex(course.name);
             if (allText.match(courseRegex)) {
                 completedExtensionCourses.push(course);
                 totalExtensionCredits += course.credit;
@@ -371,8 +371,7 @@ export default async function handler(req, res) {
         const recommendedVeritasCourses = ["베리타스 교양 과목 (3학점)"]; // 미이수 시 안내 문구
 
         // 💡 수정: 정규 표현식 매칭 로직 적용
-        const veritasRegex = new RegExp(`\\b베리타스_이수_3학점_단일체크\\b`);
-        if (allText.match(veritasRegex)) {
+      const veritasRegex = createSafeRegex("베리타스_이수_3학점_단일체크");
             totalVeritasCredits = 3;
             completedVeritasCourses.push("베리타스 교양 3학점 이수");
             recommendedVeritasCourses.length = 0; 
@@ -413,7 +412,7 @@ export default async function handler(req, res) {
 
         // 💡 수정: 정규 표현식 매칭 로직 적용
         allArtsAndSportsCourses.forEach(course => {
-            const courseRegex = new RegExp(`\\b${course}\\b`);
+           const courseRegex = createSafeRegex(course);
             if (allText.match(courseRegex)) {
                 completedArtsCourses.push(course);
                 totalArtsCredits += twoCreditArts.includes(course) ? 2 : 1;
@@ -423,7 +422,7 @@ export default async function handler(req, res) {
         });
 
         // 💡 수정: 정규 표현식 매칭 로직 적용
-        const extraArtsCredits = (allText.match(new RegExp(`\\b음미대, 미학과 전공\/교양\\b`, 'g')) || []).length;
+        const extraArtsCredits = (allText.match(createSafeRegex("음미대, 미학과 전공/교양")) || []).length;
         if (extraArtsCredits > 0) {
             totalArtsCredits += extraArtsCredits;
             completedArtsCourses.push(`음미대, 인문대 미학과 전공/교양 (${extraArtsCredits}학점)`);
