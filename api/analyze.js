@@ -7,8 +7,10 @@ const createSafeRegex = (searchTerm) => {
     // 정규식 특수 문자들을 이스케이프 (\, ., *, +, ?, ^, $, {등)
     const escapedTerm = searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
     // 과목명 내에 공백이 포함되어 있으므로 \b 경계를 제거하고, 모든 위치에서 찾도록 합니다.
-    return new RegExp(escapedTerm, 'g');
+    // 'g' 플래그는 전역 검색을 의미하지만, 여기서는 find/test 목적으로 사용합니다.
+    return new RegExp(escapedTerm, 'g'); 
 };
+
 // 0. '지성의 열쇠' 과목 데이터 
 const allAcademiaCourses = [
     // 과목명이 바뀌거나, 과목 추가 등을 할 경우, 아래를 수정해주세요!
@@ -225,7 +227,7 @@ export default async function handler(req, res) {
             completedElectiveCourses.push(`타단과대(자연대, 농생대, 공대, 수의대, 치대, 혁신공유학부) 전공 (${otherCollegeCredits}학점)`);
         }
         // 예외 규칙 적용: 음미대/미학과 전공 학점 중복 인정
-        const artsMajorAsElectiveCredits = (allText.match(/음미대, 미학과 전공\/교양/g) || []).length;
+        const artsMajorAsElectiveCredits = (allText.match(createSafeRegex("음미대, 미학과 전공/교양")) || []).length; // createSafeRegex 사용
         if (artsMajorAsElectiveCredits > 0) {
             totalElectiveCredits += artsMajorAsElectiveCredits;
             completedElectiveCourses.push(`(예체능 충족 예외 인정) 음미대/미학과 전공 (${artsMajorAsElectiveCredits}학점)`);
@@ -258,7 +260,7 @@ export default async function handler(req, res) {
         // 💡 수정: 정규 표현식 매칭 로직 적용
         fixedLiberalArts.forEach(course => {
            const courseRegex = createSafeRegex(course);
-            if (allText.match(courseRegex)) completedLiberalArts.push(course);
+             if (allText.match(courseRegex)) completedLiberalArts.push(course);
             else remainingLiberalArts.push(course);
         });
 
@@ -370,8 +372,9 @@ export default async function handler(req, res) {
         const completedVeritasCourses = [];
         const recommendedVeritasCourses = ["베리타스 교양 과목 (3학점)"]; // 미이수 시 안내 문구
 
-        // 💡 수정: 정규 표현식 매칭 로직 적용
-      const veritasRegex = createSafeRegex("베리타스_이수_3학점_단일체크");
+        // 단일 체크박스의 고유 ID를 확인하고 학점 부여
+        const veritasRegex = createSafeRegex("베리타스_이수_3학점_단일체크");
+        if (allText.match(veritasRegex)) { // 💡 if 문 복구
             totalVeritasCredits = 3;
             completedVeritasCourses.push("베리타스 교양 3학점 이수");
             recommendedVeritasCourses.length = 0; 
