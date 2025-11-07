@@ -482,42 +482,40 @@ export default async function handler(req, res) {
             neededCount: neededElectiveCount,
             labels: electiveLabels
         };
-        // ======================================================
-        // 10. 기타 (12학점 이상) 
-        // ======================================================
+     // analyze.js (섹션 10번 전체 대체)
+// ======================================================
+// 10. 기타 (초과 학점 합산) 
+// ======================================================
         let excessElectiveCredits = Math.max(0, totalElectiveCredits - requiredElectiveCredits);
         const ELECTIVE_CAP = 7;
         if (excessElectiveCredits > ELECTIVE_CAP) {
             excessElectiveCredits = ELECTIVE_CAP;
         }
 
-        // 💡 UPDATED: excessAcademiaCreditTotal 변수를 사용 (Core 3 초과 + 과학적 사고 전체)
-        let excessAcademiaCredits = excessAcademiaCreditTotal; 
-        
-        // 💡 지성의 확장은 필수가 아니므로, 이수한 학점 전체를 초과 학점으로 간주
+        let excessAcademiaCredits = excessAcademiaCreditTotal; // Core 3 초과 + 과학적 사고 전체
         let excessExtensionCredits = totalExtensionCredits; 
-        
         let excessVeritasCredits = Math.max(0, totalVeritasCredits - requiredVeritasCredits); 
         let excessArtsCredits = Math.max(0, totalArtsCredits - requiredArtsCredits);
 
-        const otherCredits = (allText.match(/기타 학점/g) || []).length;
+        // 💡 삭제: const otherCredits = (allText.match(/기타 학점/g) || []).length;
+        // 💡 삭제: const requiredOtherCredits = 12;
 
-        const requiredOtherCredits = 12;
-
-        // 초과 학점과 일반 교양 학점을 합산
-        const totalOtherCredits = excessElectiveCredits + excessAcademiaCredits + excessExtensionCredits + excessVeritasCredits + excessArtsCredits + otherCredits;
-        const remainingOtherCredits = Math.max(0, requiredOtherCredits - totalOtherCredits);
+        // 초과 학점만 합산
+        const totalOtherCredits = excessElectiveCredits + excessAcademiaCredits + excessExtensionCredits + excessVeritasCredits + excessArtsCredits;
+        
+        // 💡 기타 이수 요구 조건은 삭제됨. 이 부분은 초과 학점 합계 결과만 표시합니다.
+        const requiredOtherCredits = 0; // 요구 학점 0으로 설정 (결과 표기 방식 유지용)
+        const remainingOtherCredits = 0; // 남은 학점 0으로 설정
 
         const otherDescription = `
-            *일반 교양 ${otherCredits}학점 + 
-            기타(전선 초과 ${excessElectiveCredits}학점 + 
+            *초과 교양 학점 합산 (전선 초과 ${excessElectiveCredits}학점 + 
             지성의열쇠 초과 ${excessAcademiaCredits}학점 + 
             지성의확장 ${totalExtensionCredits}학점 +
             베리타스 초과 ${excessVeritasCredits}학점 +
             예체능 초과 ${excessArtsCredits}학점)
         `;
 
-        analysisResult["기타"] = {
+        analysisResult["초과 학점 합산"] = { // 💡 섹션 이름 변경
             description: otherDescription,
             displayType: "credit_count_simple",
             completedCredits: totalOtherCredits,
