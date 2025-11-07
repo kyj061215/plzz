@@ -6,9 +6,9 @@
 const createSafeRegex = (searchTerm) => {
     // 정규식 특수 문자들을 이스케이프 (\, ., *, +, ?, ^, $, {등)
     const escapedTerm = searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    // 문자열 경계(\b)를 사용하여 정확한 단어 일치만 허용합니다. (띄어쓰기가 포함된 과목명도 처리)
-    // 'g' 플래그는 전역 검색을 의미하며, match() 호출 시 결과를 배열로 반환하는 데 사용됩니다.
-    return new RegExp(`\\b${escapedTerm}\\b`, 'g'); 
+    // 과목명 내에 공백이 포함되어 있으므로 \b 경계를 제거하고, 모든 위치에서 찾도록 합니다.
+    // 'g' 플래그는 전역 검색을 의미하지만, 여기서는 find/test 목적으로 사용합니다.
+    return new RegExp(escapedTerm, 'g'); 
 };
 
 // 0. '지성의 열쇠' 과목 데이터 
