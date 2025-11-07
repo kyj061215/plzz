@@ -65,7 +65,7 @@ const allAcademiaCourses = [
     {"name": "현대국가와 행정", "group": "인간의 이해와 사회 분석"}, {"name": "현대사회와 국제어", "group": "인간의 이해와 사회 분석"}, {"name": "현대사회와 법", "group": "인간의 이해와 사회 분석"},  
     {"name": "현대사회의 생로병사", "group": "인간의 이해와 사회 분석"}, {"name": "현대정치의 이해", "group": "인간의 이해와 사회 분석"},
     
-    // 💡 오류 수정: '과학적 사고와 응용 분야' 객체 형식 복구
+    // 💡 추가된 영역: 과학적 사고와 응용 분야 (Scientific Thinking)
     {"name": "공간정보와 시각화", "group": "과학적 사고와 응용 분야"},
     {"name": "과학과 비판적 사고", "group": "과학적 사고와 응용 분야"},
     {"name": "과학의 철학적 이해", "group": "과학적 사고와 응용 분야"},
@@ -215,13 +215,11 @@ export default async function handler(req, res) {
             completedElectiveCourses.push(`타단과대(자연대, 농생대, 공대, 수의대, 치대, 혁신공유학부) 전공 (${otherCollegeCredits}학점)`);
         }
         // 예외 규칙 적용: 음미대/미학과 전공 학점 중복 인정
-        // '음미대, 미학과 전공/교양' 항목에 입력된 학점을 전공 선택 학점에 합산
         const artsMajorAsElectiveCredits = (allText.match(/음미대, 미학과 전공\/교양/g) || []).length;
         if (artsMajorAsElectiveCredits > 0) {
             totalElectiveCredits += artsMajorAsElectiveCredits;
-            // 결과에 예외적으로 인정된 학점임을 명시
             completedElectiveCourses.push(`(예체능 충족 예외 인정) 음미대/미학과 전공 (${artsMajorAsElectiveCredits}학점)`);
-}
+        }
         
         const remainingCredits = Math.max(0, requiredElectiveCredits - totalElectiveCredits);
 
@@ -277,17 +275,20 @@ export default async function handler(req, res) {
         const completedAcademiaCourses = [];
         const completedExtensionCourses = []; // 지성의 확장 이수 과목
         const completedGroupCredits = {}; 
-        let totalAcademiaCredits = 0; // 지성의 열쇠 (4개 영역 합산) 학점
         let totalExtensionCredits = 0; // 지성의 확장 학점
+        
+        // Constants used in calculation
         const requiredAcademiaCredits = 9; 
         const requiredGroupCredit = 3; 
+        const coreAcademiaGroups = ["문화 해석과 상상", "역사적 탐구와 철학적 사유", "인간의 이해와 사회 분석"];
+        const allAcademiaGroupNames = [...coreAcademiaGroups, "과학적 사고와 응용 분야"]; // All 4 Academia groups
 
-        // 1. 지성의 열쇠 (4개 영역) 분석
+        // 1. 지성의 열쇠 (4개 영역) 분석 - Accumulate all credits by group
         allAcademiaCourses.forEach(course => {
             if (allText.includes(course.name)) {
                 completedAcademiaCourses.push(course);
                 completedGroupCredits[course.group] = (completedGroupCredits[course.group] || 0) + 3;
-                totalAcademiaCredits += 3; 
+                // Note: totalAcademiaCredits is calculated later based on rules
             }
         });
         
@@ -298,9 +299,26 @@ export default async function handler(req, res) {
                 totalExtensionCredits += course.credit;
             }
         });
-        
-        // 3. 필수 이수 영역 (문화 해석, 역사적 탐구, 인간의 이해) 체크
-        const coreAcademiaGroups = ["문화 해석과 상상", "역사적 탐구와 철학적 사유", "인간의 이해와 사회 분석"];
+
+        // 3. 💡 NEW LOGIC: Calculate Retained Credits (for 9 total) and Excess Academia Credits
+        let totalAcademiaCredits = 0; // This will hold the RETAINED credits (max 3 per core group)
+        let excessAcademiaCreditTotal = 0; // Total excess from all 4 groups
+
+        allAcademiaGroupNames.forEach(groupName => {
+            const earned = completedGroupCredits[groupName] || 0;
+            
+            if (groupName === "과학적 사고와 응용 분야") {
+                // Rule 1: Scientific Thinking (all credits go to excess)
+                excessAcademiaCreditTotal += earned;
+            } else { 
+                // Rule 2: Core 3 groups (max 3 credits retained per group)
+                const retained = Math.min(earned, requiredGroupCredit);
+                totalAcademiaCredits += retained; // Accumulate retained credits for the 9-credit check
+                excessAcademiaCreditTotal += Math.max(0, earned - retained); // Accumulate excess
+            }
+        });
+
+        // 4. 필수 이수 영역 (문화 해석, 역사적 탐구, 인간의 이해) 체크
         const remainingGroups = coreAcademiaGroups.filter(groupName => (completedGroupCredits[groupName] || 0) < requiredGroupCredit);
 
         const recommendedCoursesByGroup = {};
@@ -314,14 +332,14 @@ export default async function handler(req, res) {
 
         analysisResult["지성의 열쇠 & 지성의 확장"] = {
             description: "지성의 열쇠 (문화 해석, 역사적 탐구, 인간의 이해) 3개 영역에서 각각 3학점 이상 이수해야 하며, 과학적 사고와 응용 분야 및 지성의 확장은 자유 선택 교양으로 간주됩니다.",
-            displayType: "academia_extension_group_count", // 새로운 displayType 사용
+            displayType: "academia_extension_group_count",
             completedAcademiaCourses: completedAcademiaCourses,
             completedExtensionCourses: completedExtensionCourses,
             completedGroupCount: coreAcademiaGroups.length - remainingGroups.length, 
             requiredGroupCount: coreAcademiaGroups.length, 
-            totalAcademiaCredits,
-            totalExtensionCredits, // 지성의 확장 학점 별도 표시
-            requiredCredits: requiredAcademiaCredits,
+            totalAcademiaCredits, // Retained credits (max 9)
+            totalExtensionCredits, 
+            requiredCredits: requiredAcademiaCredits, // 9
             remainingGroups,
             recommendedCoursesByGroup,
             isGroupMet
@@ -473,7 +491,9 @@ export default async function handler(req, res) {
             excessElectiveCredits = ELECTIVE_CAP;
         }
 
-        let excessAcademiaCredits = Math.max(0, totalAcademiaCredits - requiredAcademiaCredits);
+        // 💡 UPDATED: excessAcademiaCreditTotal 변수를 사용 (Core 3 초과 + 과학적 사고 전체)
+        let excessAcademiaCredits = excessAcademiaCreditTotal; 
+        
         // 💡 지성의 확장은 필수가 아니므로, 이수한 학점 전체를 초과 학점으로 간주
         let excessExtensionCredits = totalExtensionCredits; 
         
@@ -485,7 +505,6 @@ export default async function handler(req, res) {
         const requiredOtherCredits = 12;
 
         // 초과 학점과 일반 교양 학점을 합산
-        // 💡 지성의 열쇠 초과 학점 + 지성의 확장 전체 학점 포함
         const totalOtherCredits = excessElectiveCredits + excessAcademiaCredits + excessExtensionCredits + excessVeritasCredits + excessArtsCredits + otherCredits;
         const remainingOtherCredits = Math.max(0, requiredOtherCredits - totalOtherCredits);
 
