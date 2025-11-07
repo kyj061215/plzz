@@ -65,7 +65,7 @@ const allAcademiaCourses = [
     {"name": "현대국가와 행정", "group": "인간의 이해와 사회 분석"}, {"name": "현대사회와 국제어", "group": "인간의 이해와 사회 분석"}, {"name": "현대사회와 법", "group": "인간의 이해와 사회 분석"},  
     {"name": "현대사회의 생로병사", "group": "인간의 이해와 사회 분석"}, {"name": "현대정치의 이해", "group": "인간의 이해와 사회 분석"},
     
-    // 💡 추가된 영역: 과학적 사고와 응용 분야 (Scientific Thinking)
+    // 💡 과학적 사고와 응용 분야
     {"name": "공간정보와 시각화", "group": "과학적 사고와 응용 분야"},
     {"name": "과학과 비판적 사고", "group": "과학적 사고와 응용 분야"},
     {"name": "과학의 철학적 이해", "group": "과학적 사고와 응용 분야"},
@@ -170,8 +170,10 @@ export default async function handler(req, res) {
         const completedRequired = [];
         const remainingRequired = [];
 
+        // 💡 수정: 정규 표현식 매칭 로직 적용
         allRequiredCourses.forEach(course => {
-            if (allText.includes(course)) completedRequired.push(course);
+            const courseRegex = new RegExp(`\\b${course}\\b`);
+            if (allText.match(courseRegex)) completedRequired.push(course);
             else remainingRequired.push(course);
         });
 
@@ -200,8 +202,10 @@ export default async function handler(req, res) {
         const completedElectiveCourses = [];
         const recommendedElectiveCourses = [];
 
+        // 💡 수정: 정규 표현식 매칭 로직 적용
         allElectiveCourses.forEach(course => {
-            if (allText.includes(course)) {
+            const courseRegex = new RegExp(`\\b${course}\\b`);
+            if (allText.match(courseRegex)) {
                 completedElectiveCourses.push(course);
                 totalElectiveCredits += twoCreditElectives.includes(course) ? 2 : 3;
             } else {
@@ -245,14 +249,18 @@ export default async function handler(req, res) {
         const completedLiberalArts = [];
         const remainingLiberalArts = [];
 
+        // 💡 수정: 정규 표현식 매칭 로직 적용
         fixedLiberalArts.forEach(course => {
-            if (allText.includes(course)) completedLiberalArts.push(course);
+            const courseRegex = new RegExp(`\\b${course}\\b`);
+            if (allText.match(courseRegex)) completedLiberalArts.push(course);
             else remainingLiberalArts.push(course);
         });
 
         let foreignLanguageCount = 0;
+        // 💡 수정: 정규 표현식 매칭 로직 적용
         foreignLanguageOptions.forEach(lang => {
-            if (allText.includes(lang)) {
+            const langRegex = new RegExp(`\\b${lang}\\b`);
+            if (allText.match(langRegex)) {
                 completedLiberalArts.push(lang);
                 foreignLanguageCount++;
             }
@@ -285,16 +293,19 @@ export default async function handler(req, res) {
 
         // 1. 지성의 열쇠 (4개 영역) 분석 - Accumulate all credits by group
         allAcademiaCourses.forEach(course => {
-            if (allText.includes(course.name)) {
+            // 💡 수정: 정규 표현식 매칭 로직 적용
+            const courseRegex = new RegExp(`\\b${course.name}\\b`);
+            if (allText.match(courseRegex)) {
                 completedAcademiaCourses.push(course);
                 completedGroupCredits[course.group] = (completedGroupCredits[course.group] || 0) + 3;
-                // Note: totalAcademiaCredits is calculated later based on rules
             }
         });
         
         // 2. 지성의 확장 분석 (학점 예외 처리 포함)
         allExtensionCourses.forEach(course => {
-            if (allText.includes(course.name)) {
+            // 💡 수정: 정규 표현식 매칭 로직 적용
+            const courseRegex = new RegExp(`\\b${course.name}\\b`);
+            if (allText.match(courseRegex)) {
                 completedExtensionCourses.push(course);
                 totalExtensionCredits += course.credit;
             }
@@ -353,8 +364,9 @@ export default async function handler(req, res) {
         const completedVeritasCourses = [];
         const recommendedVeritasCourses = ["베리타스 교양 과목 (3학점)"]; // 미이수 시 안내 문구
 
-        // 단일 체크박스의 고유 ID를 확인하고 학점 부여
-        if (allText.includes("베리타스_이수_3학점_단일체크")) {
+        // 💡 수정: 정규 표현식 매칭 로직 적용
+        const veritasRegex = new RegExp(`\\b베리타스_이수_3학점_단일체크\\b`);
+        if (allText.match(veritasRegex)) {
             totalVeritasCredits = 3;
             completedVeritasCourses.push("베리타스 교양 3학점 이수");
             recommendedVeritasCourses.length = 0; 
@@ -393,8 +405,10 @@ export default async function handler(req, res) {
         const completedArtsCourses = [];
         const recommendedArtsCourses = [];
 
+        // 💡 수정: 정규 표현식 매칭 로직 적용
         allArtsAndSportsCourses.forEach(course => {
-            if (allText.includes(course)) {
+            const courseRegex = new RegExp(`\\b${course}\\b`);
+            if (allText.match(courseRegex)) {
                 completedArtsCourses.push(course);
                 totalArtsCredits += twoCreditArts.includes(course) ? 2 : 1;
             } else {
@@ -402,7 +416,8 @@ export default async function handler(req, res) {
             }
         });
 
-        const extraArtsCredits = (allText.match(/음미대, 미학과 전공\/교양/g) || []).length;
+        // 💡 수정: 정규 표현식 매칭 로직 적용
+        const extraArtsCredits = (allText.match(new RegExp(`\\b음미대, 미학과 전공\/교양\\b`, 'g')) || []).length;
         if (extraArtsCredits > 0) {
             totalArtsCredits += extraArtsCredits;
             completedArtsCourses.push(`음미대, 인문대 미학과 전공/교양 (${extraArtsCredits}학점)`);
@@ -482,31 +497,32 @@ export default async function handler(req, res) {
             neededCount: neededElectiveCount,
             labels: electiveLabels
         };
-     // analyze.js (섹션 10번 전체 대체)
-// ======================================================
-// 10. 기타 (초과 학점 합산) 
-// ======================================================
+        // ======================================================
+        // 10. 초과 학점 합산 (기타 섹션 대체)
+        // ======================================================
         let excessElectiveCredits = Math.max(0, totalElectiveCredits - requiredElectiveCredits);
         const ELECTIVE_CAP = 7;
         if (excessElectiveCredits > ELECTIVE_CAP) {
             excessElectiveCredits = ELECTIVE_CAP;
         }
 
-        let excessAcademiaCredits = excessAcademiaCreditTotal; // Core 3 초과 + 과학적 사고 전체
+        // 💡 UPDATED: excessAcademiaCreditTotal 변수를 사용 (Core 3 초과 + 과학적 사고 전체)
+        let excessAcademiaCredits = excessAcademiaCreditTotal; 
+        
+        // 💡 지성의 확장은 필수가 아니므로, 이수한 학점 전체를 초과 학점으로 간주
         let excessExtensionCredits = totalExtensionCredits; 
+        
         let excessVeritasCredits = Math.max(0, totalVeritasCredits - requiredVeritasCredits); 
         let excessArtsCredits = Math.max(0, totalArtsCredits - requiredArtsCredits);
 
-        // 💡 삭제: const otherCredits = (allText.match(/기타 학점/g) || []).length;
-        // 💡 삭제: const requiredOtherCredits = 12;
+        // 기타 학점 입력 제거에 따라 otherCredits 관련 로직 삭제
+
+        const requiredOtherCredits = 0; // 요구 학점 0으로 설정 (결과 표기 방식 유지용)
+        const remainingOtherCredits = 0; // 남은 학점 0으로 설정
 
         // 초과 학점만 합산
         const totalOtherCredits = excessElectiveCredits + excessAcademiaCredits + excessExtensionCredits + excessVeritasCredits + excessArtsCredits;
         
-        // 💡 기타 이수 요구 조건은 삭제됨. 이 부분은 초과 학점 합계 결과만 표시합니다.
-        const requiredOtherCredits = 0; // 요구 학점 0으로 설정 (결과 표기 방식 유지용)
-        const remainingOtherCredits = 0; // 남은 학점 0으로 설정
-
         const otherDescription = `
             *초과 교양 학점 합산 (전선 초과 ${excessElectiveCredits}학점 + 
             지성의열쇠 초과 ${excessAcademiaCredits}학점 + 
@@ -515,7 +531,7 @@ export default async function handler(req, res) {
             예체능 초과 ${excessArtsCredits}학점)
         `;
 
-        analysisResult["초과 학점 합산"] = { // 💡 섹션 이름 변경
+        analysisResult["초과 학점 합산"] = {
             description: otherDescription,
             displayType: "credit_count_simple",
             completedCredits: totalOtherCredits,
