@@ -136,7 +136,15 @@ export default async function handler(req, res) {
             totalElectiveCredits += otherCollegeCredits;
             completedElectiveCourses.push(`타단과대(자연대, 농생대, 공대, 수의대, 치대, 혁신공유학부) 전공 (${otherCollegeCredits}학점)`);
         }
-
+        // 예외 규칙 적용: 음미대/미학과 전공 학점 중복 인정
+        // '음미대, 미학과 전공/교양' 항목에 입력된 학점을 전공 선택 학점에 합산
+        const artsMajorAsElectiveCredits = (allText.match(/음미대, 미학과 전공\/교양/g) || []).length;
+        if (artsMajorAsElectiveCredits > 0) {
+            totalElectiveCredits += artsMajorAsElectiveCredits;
+            // 결과에 예외적으로 인정된 학점임을 명시
+            completedElectiveCourses.push(`(예체능 충족 예외 인정) 음미대/미학과 전공 (${artsMajorAsElectiveCredits}학점)`);
+}
+        
         const remainingCredits = Math.max(0, requiredElectiveCredits - totalElectiveCredits);
 
         analysisResult["전공 선택"] = {
